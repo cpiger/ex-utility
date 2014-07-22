@@ -210,14 +210,6 @@ function ex#compl_by_symbol( arg_lead, cmd_line, cursor_pos )
     return filter_tag
 endfunction
 
-" ------------------------------------------------------------------ 
-" Desc: Convert full file name into the format: file_name (directory)
-" ------------------------------------------------------------------ 
-
-function ex#ConvertFileName(full_file_name) " <<<
-    return fnamemodify( a:full_file_name, ":t" ) . ' (' . fnamemodify( a:full_file_name, ":h" ) . ')'    
-endfunction ">>>
-
 function ex#restore_lasteditbuffers() " <<<
     if exists ('g:ex_restore_info') && findfile( fnamemodify(g:ex_restore_info,':p'), '.;' ) != ""
         call ex#window#goto_edit_window()

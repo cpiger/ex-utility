@@ -224,14 +224,19 @@ function ex#restore_lasteditbuffers()
 
         " load all buffers
         for cmd in cmdlist 
-            if 0 == stridx(cmd, "badd") || 0 == stridx(cmd, "edit") || 0 == stridx(cmd, "call")
+            if stridx(cmd, 'badd') == 0
+                let filename = strpart( cmd, 4 )
+                silent exec 'edit '.filename
+                doautocmd BufAdd,BufRead
+            elseif stridx(cmd, 'edit') == 0 || stridx(cmd, 'call') == 0
                 silent exec cmd 
             endif
         endfor
 
         " go to last edit buffer
-        call ex#window#goto_edit_window()
-        doautocmd BufNewFile,BufRead,BufEnter,BufWinEnter
+        if &filetype != 'vimentry'
+            doautocmd BufRead,BufEnter,BufWinEnter
+        endif
     endif
 endfunction
 
@@ -258,9 +263,10 @@ function ex#save_restore_info()
         silent call add ( cmdlist, "edit " . bufname(last_buf_nr) )
         let save_cursor = getpos(".")
         silent call add ( cmdlist, "call cursor(" . save_cursor[1] . "," . save_cursor[2] . ")" )
-        "
-        call writefile( cmdlist, s:restore_info)
     endif
+
+    "
+    call writefile( cmdlist, s:restore_info)
 endfunction
 
 function ex#InsertIFZero() range " <<<

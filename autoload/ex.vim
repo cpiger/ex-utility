@@ -2,7 +2,9 @@
 " msg: string
 function ex#hint(msg)
     silent echohl ModeMsg
-    echon a:msg
+    "echon slow to show ?
+    " echon a:msg
+    echomsg a:msg
     silent echohl None
 endfunction
 

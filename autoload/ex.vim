@@ -2,7 +2,9 @@
 " msg: string
 function ex#hint(msg)
     silent echohl ModeMsg
-    echon a:msg
+    "echon slow to show ?
+    " echon a:msg
+    echomsg a:msg
     silent echohl None
 endfunction
 
@@ -280,4 +282,89 @@ function ex#save_restore_info()
     call writefile( cmdlist, s:restore_info)
 endfunction
 
+function ex#InsertIFZero() range " <<<
+    let lstline = a:lastline + 1 
+    call append( a:lastline , "#endif")
+    call append( a:firstline -1 , "#if 0")
+    silent exec ":" . lstline
+endfunction " >>>
+
+" ------------------------------------------------------------------ 
+" Desc: 
+" ------------------------------------------------------------------ 
+
+function ex#RemoveIFZero() range " <<<
+    " FIXME: when line have **, it will failed
+    let save_cursor = getpos(".")
+    let save_line = getline(".")
+    let cur_line = save_line
+
+    let if_lnum = -1
+    let else_lnum = -1
+    let endif_lnum = -1
+
+    " found '#if 0' first
+    while match(cur_line, "#if.*0") == -1
+        let cur_line_nr = line(".")
+        silent normal! [#
+        let cur_line = getline(".")
+        let lnum = line(".")
+        if lnum == cur_line_nr
+            if match(cur_line, "#if.*0") == -1
+                call ex#warning(" not #if 0 matched")
+                silent call cursor(save_cursor[1], save_cursor[2])
+                return
+            endif
+        endif
+    endwhile
+
+    " record the line
+    let if_lnum = line(".")
+    silent normal! ]#
+    let cur_line = getline(".")
+    if match(cur_line, "#else") != -1
+        let else_lnum = line(".")
+        silent normal! ]#
+        let endif_lnum = line(".")
+    else
+        let endif_lnum = line(".")
+    endif
+
+    " delete the if/else/endif
+    if endif_lnum != -1
+        silent exe endif_lnum
+        silent normal! dd
+    endif
+    if else_lnum != -1
+        silent exe else_lnum
+        silent call setline('.',"// XXX #else XXX")
+    endif
+    if if_lnum != -1
+        silent exe if_lnum
+        silent normal! dd
+    endif
+
+    silent call setpos('.', save_cursor)
+    if match(save_line, "#if.*0") == -1 && match(save_line, "#endif.*") == -1
+        silent call search('\V'.save_line, 'b')
+    endif
+    silent call cursor(line('.'), save_cursor[2])
+    if match(save_line, "#endif.*") != -1
+        silent normal! kk
+    endif
+endfunction " >>>
+
+" ------------------------------------------------------------------ 
+" Desc: TODO: check if the last character is space, if not, add space
+"       TODO: used the longest column as the base column to insert \
+" ------------------------------------------------------------------ 
+
+function ex#InsertRemoveExtend() range " <<<
+    let line = getline('.')
+    if (strpart(line,strlen(line)-1,1) == "\\")
+        exec ":" . a:firstline . "," . a:lastline . "s/\\\\$//"
+    else
+        exec ":" . a:firstline . "," . a:lastline . "s/$/ \\\\/"
+    endif
+endfunction " >>>
 " vim:ts=4:sw=4:sts=4 et fdm=marker:

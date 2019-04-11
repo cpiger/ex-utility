@@ -182,6 +182,14 @@ function ex#is_registered_plugin ( bufnr, ... )
     return 0
 endfunction
 
+function ex#smartcasecompare( text, pattern ) " <<<
+    if match(a:pattern, '\u') != -1 " if we have upper case, use case compare
+        return match ( a:text, '\C'.a:pattern ) != -1
+    else " ignore case compare
+        return match ( a:text, a:pattern ) != -1
+    endif 
+endfunction " >>>
+
 " ex#set_symbol_path {{{1
 function ex#set_symbol_path( path )
     let s:symbols_file = a:path
@@ -196,21 +204,45 @@ function ex#compl_by_symbol( arg_lead, cmd_line, cursor_pos )
     let filter_tag = []
     let tags = readfile( s:symbols_file )
 
+    let pattern = '^'.a:arg_lead.'.*'
     for tag in tags
-        let pattern = '^'.a:arg_lead.'.*'
-
-        if match(pattern, '\u') != -1 " if we have upper case, use case compare
-            let result = match ( tag, '\C'.pattern )
-        else " ignore case compare
-            let result = match ( tag, pattern )
-        endif 
-
-        if result != -1
+        if ex#smartcasecompare ( tag, pattern)
             silent call add ( filter_tag, tag )
         endif
     endfor
     return filter_tag
 endfunction
+
+function ex#getfilename( text ) " <<<
+    let line = ''
+    " if it is a file
+    if match(a:text,'[^^]-\C\[[^F]\]') != -1
+        let line = a:text
+        let line = substitute(line,'.\{-}\[.\{-}\]\(.\{-}\)','\1','')
+        let idx_end_1 = stridx(line,' {')
+        let idx_end_2 = stridx(line,' }')
+        if idx_end_1 != -1
+            let line = strpart(line,0,idx_end_1)
+        elseif idx_end_2 != -1
+            let line = strpart(line,0,idx_end_2)
+        endif
+    endif
+    return line
+endfunction " >>>
+" ex#compl_by_prjfile {{{1
+function ex#compl_by_prjfile( arg_lead, cmd_line, cursor_pos ) " <<<
+    let filter_files = []
+    if exists ('g:ex_project_file')
+        let project_files = readfile(g:ex_project_file)
+        for file_line in project_files
+            let file_name = ex#getfilename (file_line)
+            if ex#smartcasecompare( file_name, '^'.a:arg_lead.'.*' )
+                silent call add ( filter_files, file_name )
+            endif
+        endfor
+    endif
+    return filter_files
+endfunction " >>>
 
 " ex#set_restore_info {{{1
 let s:restore_info = './restore_info'
